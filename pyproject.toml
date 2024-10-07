@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "auth-service"
+version = "0.1.0"
+description = ""
+authors = ["Alexander <alexpunder@yandex.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = {extras = ["standard"], version = "^0.115.0"}
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.35"}
+alembic = "^1.13.3"
+ruff = "^0.6.9"
+pydantic-settings = "^2.5.2"
+psycopg2-binary = "^2.9.9"
+asyncpg = "^0.29.0"
+aiosqlite = "^0.20.0"
+orjson = "^3.10.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
