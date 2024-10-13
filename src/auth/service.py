@@ -1,6 +1,6 @@
 import asyncio
 
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 from src.config import settings
 

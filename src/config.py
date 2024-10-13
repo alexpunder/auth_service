@@ -1,8 +1,7 @@
-from typing import Type, Sequence
+from typing import Sequence, Type
 
 from fastapi.middleware import Middleware
 from fastapi.responses import ORJSONResponse, Response
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.middleware import middleware
@@ -35,7 +34,7 @@ class AppSettings(ExtendBaseSettings):
 class DBSettings(ExtendBaseSettings):
     model_config = SettingsConfigDict(env_prefix='DB_')
 
-    dsn: str = 'sqlite+aiosqlite:///./auth.db'
+    DSN: str = 'sqlite+aiosqlite:///./auth.db'
 
 
 class KafkaSettings(ExtendBaseSettings):
