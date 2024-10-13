@@ -14,7 +14,7 @@ class AuthValidation:
         self,
         session: AsyncSession,
         user_phone: str,
-    ):
+    ) -> AuthenticatedUser | None:
         user_exists = await session.execute(
             select(self.model)
             .where(self.model.phone_number == user_phone)
@@ -26,7 +26,7 @@ class AuthValidation:
         self,
         session: AsyncSession,
         user_phone: str,
-    ):
+    ) -> AuthenticatedUser | None:
         if (user_object := await self.check_user_exist(
             session=session,
             user_phone=user_phone,
@@ -42,7 +42,7 @@ class AuthValidation:
         self,
         session: AsyncSession,
         user_phone: str,
-    ):
+    ) -> AuthenticatedUser | None:
         if not (user_object := await self.check_user_exist(
             session=session,
             user_phone=user_phone,

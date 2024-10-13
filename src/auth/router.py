@@ -11,6 +11,7 @@ from src.auth.models import AuthenticatedUser
 from src.auth.schemas import (
     UserCreate,
     UserInDB,
+    Token,
 )
 from src.auth.service import auth_service
 from src.auth.validations import auth_validator
@@ -53,6 +54,7 @@ async def user_registry(
 @router.post(
     '/login',
     status_code=status.HTTP_202_ACCEPTED,
+    response_model=Token,
 )
 async def login_user(
     login_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -80,8 +82,25 @@ async def login_user(
         input_password=login_data.password,
         hashed_password=user.hashed_password,
     )
+    jwt_token = auth_service.create_access_token(
+        data={
+            'user_id': user.id,
+            'phone_number': user.phone_number
+        }
+    )
 
-    return {'status': 'ok'}
+    logging.info(f'Вывод JWT-токена: {jwt_token=}')
+
+    decoded_jwt_token = auth_service.decode_access_token(
+        token=jwt_token,
+    )
+
+    logging.info(f'Вывод декодированного JWT-токена: {decoded_jwt_token=}')
+
+    return Token(
+        access_token=jwt_token,
+        token_type='bearer',
+    )
 
 
 @router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)

@@ -31,6 +31,14 @@ class AppSettings(ExtendBaseSettings):
     LICENSE_INFO: dict = {}
 
 
+class AuthSettings(ExtendBaseSettings):
+    model_config = SettingsConfigDict(env_prefix='AUTH_')
+
+    SECRET_KEY: str | bytes
+    ALGORITHM: str
+    EXPIRE: int
+
+
 class DBSettings(ExtendBaseSettings):
     model_config = SettingsConfigDict(env_prefix='DB_')
 
@@ -44,6 +52,7 @@ class KafkaSettings(ExtendBaseSettings):
 
 class Settings(ExtendBaseSettings):
     app_settings: AppSettings = AppSettings()
+    auth_settings: AuthSettings = AuthSettings()
     db_settings: DBSettings = DBSettings()
     kafka_settings: KafkaSettings = KafkaSettings()
 
