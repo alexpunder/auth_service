@@ -16,8 +16,7 @@ class AuthValidation:
         user_phone: str,
     ) -> AuthenticatedUser | None:
         user_exists = await session.execute(
-            select(self.model)
-            .where(self.model.phone_number == user_phone)
+            select(self.model).where(self.model.phone_number == user_phone)
         )
 
         return user_exists.scalar_one_or_none()
@@ -27,13 +26,13 @@ class AuthValidation:
         session: AsyncSession,
         user_phone: str,
     ) -> AuthenticatedUser | None:
-        if (user_object := await self.check_user_exist(
+        if user_object := await self.check_user_exist(
             session=session,
             user_phone=user_phone,
-        )):
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Пользователь с таким номером телефона уже существует.'
+                detail='Пользователь с таким номером телефона уже существует.',
             )
 
         return user_object
@@ -43,13 +42,15 @@ class AuthValidation:
         session: AsyncSession,
         user_phone: str,
     ) -> AuthenticatedUser | None:
-        if not (user_object := await self.check_user_exist(
-            session=session,
-            user_phone=user_phone,
-        )):
+        if not (
+            user_object := await self.check_user_exist(
+                session=session,
+                user_phone=user_phone,
+            )
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail='Пользователь с таким номером не найден.'
+                detail='Пользователь с таким номером не найден.',
             )
 
         return user_object

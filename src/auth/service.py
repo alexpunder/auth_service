@@ -1,9 +1,9 @@
-import jwt
 import asyncio
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
-from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 import bcrypt
+import jwt
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from fastapi import status
 from fastapi.exceptions import HTTPException
 
@@ -43,16 +43,14 @@ class AuthService:
         return jwt.decode(
             jwt=token,
             key=self.secret_key,
-            algorithms=self.algorithm,
+            algorithms=[self.algorithm],
         )
 
     @staticmethod
     def hash_password(password: str):
         bytes_pwd = password.encode('utf-8')
         salt = bcrypt.gensalt()
-        return bcrypt.hashpw(
-            password=bytes_pwd, salt=salt
-        )
+        return bcrypt.hashpw(password=bytes_pwd, salt=salt)
 
     @staticmethod
     def verified_password(input_password: str, hashed_password: bytes):
@@ -62,7 +60,7 @@ class AuthService:
         ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Ошибка проверки пароля: не совпадает!'
+                detail='Ошибка проверки пароля.',
             )
 
 

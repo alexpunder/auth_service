@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import func, MetaData
+from sqlalchemy import MetaData, func
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
