@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, status
 from fastapi.security import HTTPBearer
-from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
@@ -23,17 +22,6 @@ router = APIRouter(
     tags=['Auth'],
     dependencies=[Depends(http_bearer)],
 )
-
-
-@router.get(
-    '/me',
-    status_code=status.HTTP_200_OK,
-    response_model=UserInDB,
-)
-async def get_user(
-    current_user: Annotated[AuthenticatedUser, Depends(get_current_user)],
-):
-    return current_user
 
 
 @router.post(
@@ -87,19 +75,25 @@ async def validate_auth_user(
         input_password=password,
         hashed_password=user.hashed_password,
     )
+    auth_validator.check_user_status(
+        user=user,
+    )
     return user
 
 
 @router.post(
     '/login',
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_200_OK,
     response_model=TokenInfo,
 )
 async def login_user(
     user: Annotated[UserCreate, Depends(validate_auth_user)],
 ):
     jwt_token = auth_service.create_access_token(
-        data={'user_id': user.id, 'phone_number': user.phone_number}
+        data={
+            'user_id': user.id,
+            'phone_number': user.phone_number
+        },
     )
 
     return TokenInfo(
@@ -108,12 +102,12 @@ async def login_user(
     )
 
 
-@router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_data(
-    user_id: int,
-    session: Annotated[AsyncSession, Depends(get_async_session)],
+@router.get(
+    '/me',
+    status_code=status.HTTP_200_OK,
+    response_model=UserInDB,
+)
+async def get_user(
+    current_user: Annotated[AuthenticatedUser, Depends(get_current_user)],
 ):
-    await session.execute(
-        delete(AuthenticatedUser).where(AuthenticatedUser.id == user_id)
-    )
-    await session.commit()
+    return current_user

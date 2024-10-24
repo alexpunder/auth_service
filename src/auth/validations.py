@@ -49,11 +49,21 @@ class AuthValidation:
             )
         ):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail='Пользователь с таким номером не найден.',
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Ошибка проверки логина или пароля.',
             )
 
         return user_object
+
+    async def check_user_status(
+        self,
+        user: AuthenticatedUser,
+    ):
+        if user.status == 'заблокирован':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='К сожалению, Вы заблокированы.'
+            )
 
 
 auth_validator = AuthValidation(AuthenticatedUser)

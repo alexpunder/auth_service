@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import bcrypt
 import jwt
@@ -35,7 +36,7 @@ class AuthService:
         self.algorithm: str = settings.auth_settings.ALGORITHM
         self.expire: int = settings.auth_settings.EXPIRE_MINUTES
 
-    def create_access_token(self, data: dict):
+    def create_access_token(self, data: dict[str, Any]):
         to_encode = data.copy()
         now = datetime.now(tz=UTC)
         expire = now + timedelta(minutes=self.expire)
