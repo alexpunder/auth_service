@@ -25,6 +25,8 @@ consumer = AIOKafkaConsumer(
 
 class AuthService:
     def __init__(self):
+        self.private_key = settings.auth_settings.PRIVATE_KEY_PATH.read_text()
+        self.public_key = settings.auth_settings.PUBLIC_KEY_PATH.read_text()
         self.secret_key = settings.auth_settings.SECRET_KEY
         self.algorithm = settings.auth_settings.ALGORITHM
         self.expire = settings.auth_settings.EXPIRE
@@ -35,14 +37,14 @@ class AuthService:
         to_encode.update({'exp': expire})
         return jwt.encode(
             payload=to_encode,
-            key=self.secret_key,
+            key=self.private_key,
             algorithm=self.algorithm,
         )
 
     def decode_access_token(self, token: str | bytes):
         return jwt.decode(
             jwt=token,
-            key=self.secret_key,
+            key=self.public_key,
             algorithms=[self.algorithm],
         )
 
@@ -60,7 +62,7 @@ class AuthService:
         ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Ошибка проверки пароля.',
+                detail='Ошибка проверки логина или пароля.',
             )
 
 

@@ -33,7 +33,7 @@ async def get_user(
 @router.post(
     '/registration',
     status_code=status.HTTP_201_CREATED,
-    response_model=UserInDB,
+    response_model=Token,
 )
 async def user_registry(
     registration_data: UserCreate,
@@ -55,7 +55,17 @@ async def user_registry(
     await session.commit()
     await session.refresh(db_user)
 
-    return db_user
+    jwt_token = auth_service.create_access_token(
+        data={
+            'user_id': db_user.id,
+            'phone_number': db_user.phone_number,
+        }
+    )
+
+    return Token(
+        access_token=jwt_token,
+        token_type='Bearer',
+    )
 
 
 @router.post(

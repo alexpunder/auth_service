@@ -1,9 +1,9 @@
-import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordBearer
+from jwt import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,15 +14,25 @@ from src.database import get_async_session
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 
 
+def get_current_token_payload(
+    token: str = Depends(oauth2_scheme),
+) -> dict:
+    try:
+        payload = auth_service.decode_access_token(
+            token=token,
+        )
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Ошибка токена.',
+        )
+    return payload
+
+
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    payload: Annotated[dict[str, Any], Depends(get_current_token_payload)],
     session: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> AuthenticatedUser:
-    logging.info('Проверяем токен пользователя')
-    payload = auth_service.decode_access_token(
-        token=token,
-    )
-    logging.info(f'Декодированный токен пользователя: {payload=}')
     user_id = payload.get('user_id')
 
     current_user_db = await session.execute(

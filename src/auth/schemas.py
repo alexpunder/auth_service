@@ -1,14 +1,14 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class UserCreate(BaseModel):
-    phone_number: str
-    password: str
-
-
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class UserCreate(BaseModel):
+    phone_number: str
+    password: str
 
 
 class UserInDB(BaseModel):
@@ -16,4 +16,8 @@ class UserInDB(BaseModel):
 
     id: int
     phone_number: str
-    hashed_password: str
+
+
+class UserRegistration(BaseModel):
+    user: UserInDB
+    token: Token

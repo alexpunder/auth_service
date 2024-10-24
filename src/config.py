@@ -1,3 +1,5 @@
+import logging
+from pathlib import Path
 from typing import Sequence, Type
 
 from fastapi.middleware import Middleware
@@ -5,6 +7,8 @@ from fastapi.responses import ORJSONResponse, Response
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.middleware import middleware
+
+BASE_DIR = Path(__file__).parent.parent
 
 
 class ExtendBaseSettings(BaseSettings):
@@ -34,6 +38,8 @@ class AppSettings(ExtendBaseSettings):
 class AuthSettings(ExtendBaseSettings):
     model_config = SettingsConfigDict(env_prefix='AUTH_')
 
+    PUBLIC_KEY_PATH: Path = BASE_DIR / 'keys' / 'public-key.pem'
+    PRIVATE_KEY_PATH: Path = BASE_DIR / 'keys' / 'private-key.pem'
     SECRET_KEY: str | bytes
     ALGORITHM: str
     EXPIRE: int
