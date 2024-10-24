@@ -55,7 +55,7 @@ class AuthValidation:
 
         return user_object
 
-    async def check_user_status(
+    def check_user_status(
         self,
         user: AuthenticatedUser,
     ):

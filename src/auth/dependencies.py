@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import AuthenticatedUser
 from src.auth.service import auth_service
+from src.auth.validations import auth_validator
 from src.database import get_async_session
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
@@ -48,5 +49,9 @@ async def get_current_user(
             detail='Неверный логин или пароль.',
             headers={'WWW-Authenticate": "Bearer'},
         )
+
+    auth_validator.check_user_status(
+        user=current_user,
+    )
 
     return current_user
