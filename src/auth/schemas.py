@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class Token(BaseModel):
+class TokenInfo(BaseModel):
     access_token: str
     token_type: str
 
@@ -20,4 +20,4 @@ class UserInDB(BaseModel):
 
 class UserRegistration(BaseModel):
     user: UserInDB
-    token: Token
+    token: TokenInfo

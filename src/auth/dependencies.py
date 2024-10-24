@@ -36,7 +36,8 @@ async def get_current_user(
     user_id = payload.get('user_id')
 
     current_user_db = await session.execute(
-        select(AuthenticatedUser).where(AuthenticatedUser.id == user_id)
+        select(AuthenticatedUser)
+        .where(AuthenticatedUser.id == user_id)
     )
 
     current_user = current_user_db.scalar_one_or_none()

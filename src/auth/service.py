@@ -25,16 +25,24 @@ consumer = AIOKafkaConsumer(
 
 class AuthService:
     def __init__(self):
-        self.private_key = settings.auth_settings.PRIVATE_KEY_PATH.read_text()
-        self.public_key = settings.auth_settings.PUBLIC_KEY_PATH.read_text()
-        self.secret_key = settings.auth_settings.SECRET_KEY
-        self.algorithm = settings.auth_settings.ALGORITHM
-        self.expire = settings.auth_settings.EXPIRE
+        self.private_key: str = (
+            settings.auth_settings.PRIVATE_KEY_PATH.read_text()
+        )
+        self.public_key: str = (
+            settings.auth_settings.PUBLIC_KEY_PATH.read_text()
+        )
+        self.secret_key: str = settings.auth_settings.SECRET_KEY
+        self.algorithm: str = settings.auth_settings.ALGORITHM
+        self.expire: int = settings.auth_settings.EXPIRE_MINUTES
 
     def create_access_token(self, data: dict):
         to_encode = data.copy()
-        expire = datetime.now(tz=UTC) + timedelta(minutes=self.expire)
-        to_encode.update({'exp': expire})
+        now = datetime.now(tz=UTC)
+        expire = now + timedelta(minutes=self.expire)
+        to_encode.update(
+            exp=expire,
+            iat=now,
+        )
         return jwt.encode(
             payload=to_encode,
             key=self.private_key,

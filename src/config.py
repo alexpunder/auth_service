@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import Sequence, Type
 
@@ -42,7 +41,7 @@ class AuthSettings(ExtendBaseSettings):
     PRIVATE_KEY_PATH: Path = BASE_DIR / 'keys' / 'private-key.pem'
     SECRET_KEY: str | bytes
     ALGORITHM: str
-    EXPIRE: int
+    EXPIRE_MINUTES: int = 5
 
 
 class DBSettings(ExtendBaseSettings):

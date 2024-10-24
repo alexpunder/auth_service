@@ -1,14 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, Form, status
+from fastapi.security import HTTPBearer
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
 from src.auth.models import AuthenticatedUser
 from src.auth.schemas import (
-    Token,
+    TokenInfo,
     UserCreate,
     UserInDB,
 )
@@ -16,7 +16,13 @@ from src.auth.service import auth_service
 from src.auth.validations import auth_validator
 from src.database import get_async_session
 
-router = APIRouter(prefix='/auth', tags=['Auth'])
+http_bearer = HTTPBearer(auto_error=False)
+
+router = APIRouter(
+    prefix='/auth',
+    tags=['Auth'],
+    dependencies=[Depends(http_bearer)],
+)
 
 
 @router.get(
@@ -33,9 +39,9 @@ async def get_user(
 @router.post(
     '/registration',
     status_code=status.HTTP_201_CREATED,
-    response_model=Token,
+    response_model=TokenInfo,
 )
-async def user_registry(
+async def user_registration(
     registration_data: UserCreate,
     session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
@@ -62,34 +68,41 @@ async def user_registry(
         }
     )
 
-    return Token(
+    return TokenInfo(
         access_token=jwt_token,
         token_type='Bearer',
     )
 
 
+async def validate_auth_user(
+    username: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+) -> AuthenticatedUser:
+    user = await auth_validator.check_user_phone_shoud_exist(
+        session=session,
+        user_phone=username,
+    )
+    auth_service.verified_password(
+        input_password=password,
+        hashed_password=user.hashed_password,
+    )
+    return user
+
+
 @router.post(
     '/login',
     status_code=status.HTTP_202_ACCEPTED,
-    response_model=Token,
+    response_model=TokenInfo,
 )
 async def login_user(
-    login_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    session: Annotated[AsyncSession, Depends(get_async_session)],
+    user: Annotated[UserCreate, Depends(validate_auth_user)],
 ):
-    user = await auth_validator.check_user_phone_shoud_exist(
-        session=session,
-        user_phone=login_data.username,
-    )
-    auth_service.verified_password(
-        input_password=login_data.password,
-        hashed_password=user.hashed_password,
-    )
     jwt_token = auth_service.create_access_token(
         data={'user_id': user.id, 'phone_number': user.phone_number}
     )
 
-    return Token(
+    return TokenInfo(
         access_token=jwt_token,
         token_type='Bearer',
     )
