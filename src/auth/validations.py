@@ -1,9 +1,12 @@
-from fastapi import status
+from typing import Annotated
+from fastapi import Depends, Form, status
 from fastapi.exceptions import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import AuthenticatedUser
+from src.auth.models import AuthenticatedUser, UserStatus
+from src.auth.service import auth_service
+from src.database import get_async_session
 
 
 class AuthValidation:
@@ -59,7 +62,7 @@ class AuthValidation:
         self,
         user: AuthenticatedUser,
     ):
-        if user.status == 'заблокирован':
+        if user.status == UserStatus.IS_BLOCKED:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='К сожалению, Вы заблокированы.'
@@ -67,3 +70,22 @@ class AuthValidation:
 
 
 auth_validator = AuthValidation(AuthenticatedUser)
+
+
+async def validate_auth_user(
+    username: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+) -> AuthenticatedUser:
+    user = await auth_validator.check_user_phone_shoud_exist(
+        session=session,
+        user_phone=username,
+    )
+    auth_service.verified_password(
+        input_password=password,
+        hashed_password=user.hashed_password,
+    )
+    auth_validator.check_user_status(
+        user=user,
+    )
+    return user

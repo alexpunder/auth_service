@@ -12,6 +12,11 @@ metadata = MetaData(
 )
 
 
+class TokenType(StrEnum):
+    ACCESS = 'access'
+    REFRESH = 'refresh'
+
+
 class UserRole(StrEnum):
     SUPERUSER = 'администратор'
     REGULAR_USER = 'обычный пользователь'

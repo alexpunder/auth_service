@@ -4,6 +4,9 @@ from pydantic import BaseModel, ConfigDict
 
 class TokenInfo(BaseModel):
     access_token: str
+    refresh_token: str
+    access_token_expire: datetime
+    refresh_token_expire: datetime
     token_type: str
 
 

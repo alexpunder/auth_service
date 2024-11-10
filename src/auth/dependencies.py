@@ -7,7 +7,7 @@ from jwt import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import AuthenticatedUser
+from src.auth.models import AuthenticatedUser, TokenType
 from src.auth.service import auth_service
 from src.auth.validations import auth_validator
 from src.database import get_async_session
@@ -22,6 +22,11 @@ def get_current_token_payload(
         payload = auth_service.decode_access_token(
             token=token,
         )
+        if payload.get('token_type') == TokenType.REFRESH:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Требуется Access Token.'
+            )
     except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

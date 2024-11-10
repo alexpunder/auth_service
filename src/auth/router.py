@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.validations import validate_auth_user, auth_validator
 from src.auth.dependencies import get_current_user
 from src.auth.models import AuthenticatedUser
 from src.auth.schemas import (
@@ -11,9 +12,10 @@ from src.auth.schemas import (
     UserCreate,
     UserInDB,
 )
-from src.auth.service import auth_service
-from src.auth.validations import auth_validator
+from src.auth.service import auth_service, producer
+from src.auth.models import TokenType
 from src.database import get_async_session
+from src.config import settings
 
 http_bearer = HTTPBearer(auto_error=False)
 
@@ -33,12 +35,12 @@ async def user_registration(
     registration_data: UserCreate,
     session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
-    hashed_pwd = auth_service.hash_password(registration_data.password)
-
     await auth_validator.check_user_phone_shoud_not_exist(
         session,
         registration_data.phone_number,
     )
+
+    hashed_pwd = auth_service.hash_password(registration_data.password)
 
     db_user = AuthenticatedUser(
         phone_number=registration_data.phone_number,
@@ -49,36 +51,37 @@ async def user_registration(
     await session.commit()
     await session.refresh(db_user)
 
-    jwt_token = auth_service.create_access_token(
-        data={
-            'user_id': db_user.id,
-            'phone_number': db_user.phone_number,
-        }
+    await producer.send_and_wait(
+        topic=settings.kafka_settings.TOPIC_NAME,
+        value=(
+            registration_data
+            .model_dump_json(include=('phone_number'))
+            .encode('utf-8')
+        )
+    )
+
+    user_data = {
+        'user_id': db_user.id,
+        'phone_number': db_user.phone_number,
+    }
+
+    access_expire, jwt_access_token = auth_service.create_token(
+        token_type=TokenType.ACCESS,
+        data=user_data,
+    )
+
+    refresh_expire, jwt_refresh_token = auth_service.create_token(
+        token_type=TokenType.REFRESH,
+        data=user_data,
     )
 
     return TokenInfo(
-        access_token=jwt_token,
+        access_token=jwt_access_token,
+        refresh_token=jwt_refresh_token,
+        access_token_expire=access_expire,
+        refresh_token_expire=refresh_expire,
         token_type='Bearer',
     )
-
-
-async def validate_auth_user(
-    username: Annotated[str, Form()],
-    password: Annotated[str, Form()],
-    session: Annotated[AsyncSession, Depends(get_async_session)],
-) -> AuthenticatedUser:
-    user = await auth_validator.check_user_phone_shoud_exist(
-        session=session,
-        user_phone=username,
-    )
-    auth_service.verified_password(
-        input_password=password,
-        hashed_password=user.hashed_password,
-    )
-    auth_validator.check_user_status(
-        user=user,
-    )
-    return user
 
 
 @router.post(
@@ -89,15 +92,26 @@ async def validate_auth_user(
 async def login_user(
     user: Annotated[UserCreate, Depends(validate_auth_user)],
 ):
-    jwt_token = auth_service.create_access_token(
-        data={
-            'user_id': user.id,
-            'phone_number': user.phone_number
-        },
+    user_data = {
+        'user_id': user.id,
+        'phone_number': user.phone_number
+    }
+
+    access_expire, jwt_access_token = auth_service.create_token(
+        token_type=TokenType.ACCESS,
+        data=user_data,
+    )
+
+    refresh_expire, jwt_refresh_token = auth_service.create_token(
+        token_type=TokenType.REFRESH,
+        data=user_data,
     )
 
     return TokenInfo(
-        access_token=jwt_token,
+        access_token=jwt_access_token,
+        refresh_token=jwt_refresh_token,
+        access_token_expire=access_expire,
+        refresh_token_expire=refresh_expire,
         token_type='Bearer',
     )
 

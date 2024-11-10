@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+import logging
 from typing import Any
 
 import bcrypt
@@ -9,6 +10,7 @@ from fastapi import status
 from fastapi.exceptions import HTTPException
 
 from src.config import settings
+from src.auth.models import TokenType
 
 loop = asyncio.get_event_loop()
 
@@ -24,33 +26,41 @@ consumer = AIOKafkaConsumer(
 )
 
 
+async def test_kafka_get_messages():
+    logging.info('Начало цикла по выводу сообщений из очереди.')
+
+    async for message in consumer:
+        logging.info(f'Вывод сообщения полученного от Продюсера: {message=}')
+
+
 class AuthService:
     def __init__(self):
-        self.private_key: str = (
-            settings.auth_settings.PRIVATE_KEY_PATH.read_text()
-        )
-        self.public_key: str = (
-            settings.auth_settings.PUBLIC_KEY_PATH.read_text()
-        )
+        self.private_key: str = settings.auth_settings.get_private_key
+        self.public_key: str = settings.auth_settings.get_public_key
         self.secret_key: str = settings.auth_settings.SECRET_KEY
         self.algorithm: str = settings.auth_settings.ALGORITHM
-        self.expire: int = settings.auth_settings.EXPIRE_MINUTES
+        self.access_expire: int = settings.auth_settings.ACCESS_EXPIRE_MINUTES
+        self.refresh_expire: int = settings.auth_settings.REFRESH_EXPIRE_DAYS
 
-    def create_access_token(self, data: dict[str, Any]):
+    def create_token(self, token_type, data: dict[str, Any]) -> tuple[datetime, str]:
         to_encode = data.copy()
         now = datetime.now(tz=UTC)
-        expire = now + timedelta(minutes=self.expire)
+        if type == TokenType.ACCESS:
+            expire = now + timedelta(minutes=self.access_expire)
+        else:
+            expire = now + timedelta(days=self.refresh_expire)
         to_encode.update(
+            token_type=token_type,
             exp=expire,
             iat=now,
         )
-        return jwt.encode(
+        return expire, jwt.encode(
             payload=to_encode,
             key=self.private_key,
             algorithm=self.algorithm,
         )
 
-    def decode_access_token(self, token: str | bytes):
+    def decode_access_token(self, token: str | bytes) -> dict[str, Any]:
         return jwt.decode(
             jwt=token,
             key=self.public_key,

@@ -41,7 +41,16 @@ class AuthSettings(ExtendBaseSettings):
     PRIVATE_KEY_PATH: Path = BASE_DIR / 'keys' / 'private-key.pem'
     SECRET_KEY: str | bytes
     ALGORITHM: str
-    EXPIRE_MINUTES: int = 5
+    ACCESS_EXPIRE_MINUTES: int = 5
+    REFRESH_EXPIRE_DAYS: int = 30
+
+    @property
+    def get_public_key(self):
+        return self.PUBLIC_KEY_PATH.read_text()
+
+    @property
+    def get_private_key(self):
+        return self.PRIVATE_KEY_PATH.read_text()
 
 
 class DBSettings(ExtendBaseSettings):
