@@ -1,4 +1,5 @@
 from typing import Annotated, Any
+from uuid import UUID
 
 from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
@@ -19,7 +20,7 @@ def get_current_token_payload(
     token: str = Depends(oauth2_scheme),
 ) -> dict:
     try:
-        payload = auth_service.decode_access_token(
+        payload = auth_service.decode_token(
             token=token,
         )
         if payload.get('token_type') == TokenType.REFRESH:
@@ -39,13 +40,11 @@ async def get_current_user(
     payload: Annotated[dict[str, Any], Depends(get_current_token_payload)],
     session: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> AuthenticatedUser:
-    user_id = payload.get('user_id')
-
+    user_id = UUID(payload.get('user_id'))
     current_user_db = await session.execute(
         select(AuthenticatedUser)
         .where(AuthenticatedUser.id == user_id)
     )
-
     current_user = current_user_db.scalar_one_or_none()
 
     if not current_user:

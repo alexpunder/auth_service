@@ -59,10 +59,11 @@ async def user_registration(
             .encode('utf-8')
         )
     )
-
     user_data = {
-        'user_id': db_user.id,
+        'user_id': str(db_user.id),
         'phone_number': db_user.phone_number,
+        'role': db_user.role,
+        'status': db_user.status,
     }
 
     access_expire, jwt_access_token = auth_service.create_token(
@@ -90,11 +91,13 @@ async def user_registration(
     response_model=TokenInfo,
 )
 async def login_user(
-    user: Annotated[UserCreate, Depends(validate_auth_user)],
+    user: Annotated[AuthenticatedUser, Depends(validate_auth_user)],
 ):
     user_data = {
-        'user_id': user.id,
-        'phone_number': user.phone_number
+        'user_id': str(user.id),
+        'phone_number': user.phone_number,
+        'role': user.role,
+        'status': user.status,
     }
 
     access_expire, jwt_access_token = auth_service.create_token(
@@ -112,6 +115,27 @@ async def login_user(
         refresh_token=jwt_refresh_token,
         access_token_expire=access_expire,
         refresh_token_expire=refresh_expire,
+        token_type='Bearer',
+    )
+
+
+@router.post(
+    '/refresh-token',
+    response_model=TokenInfo,
+    response_model_exclude_none=True,
+)
+async def refresh_access_token(
+    refresh_token: str,
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+):
+    access_expire, access_token = await auth_service.refresh_access_token(
+        refresh_token=refresh_token,
+        session=session,
+    )
+    return TokenInfo(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        access_token_expire=access_expire,
         token_type='Bearer',
     )
 

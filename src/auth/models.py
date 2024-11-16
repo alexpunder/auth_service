@@ -1,3 +1,4 @@
+from uuid import UUID, uuid4
 from datetime import datetime
 from enum import StrEnum
 
@@ -18,13 +19,13 @@ class TokenType(StrEnum):
 
 
 class UserRole(StrEnum):
-    SUPERUSER = 'администратор'
-    REGULAR_USER = 'обычный пользователь'
+    SUPERUSER = 'admin'
+    REGULAR_USER = 'regular'
 
 
 class UserStatus(StrEnum):
-    IS_BLOCKED = 'заблокирован'
-    IS_ACTIVE = 'активный'
+    IS_BLOCKED = 'blocked'
+    IS_ACTIVE = 'active'
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -32,7 +33,10 @@ class Base(AsyncAttrs, DeclarativeBase):
 
     metadata = metadata
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID] = mapped_column(
+        primary_key=True,
+        default=uuid4,
+    )
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(), onupdate=func.now()

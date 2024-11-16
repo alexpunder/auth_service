@@ -2,15 +2,18 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
+from uuid import UUID
 
 import bcrypt
 import jwt
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from fastapi import status
 from fastapi.exceptions import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.auth.models import TokenType
+from src.auth.models import AuthenticatedUser, TokenType
 
 loop = asyncio.get_event_loop()
 
@@ -45,7 +48,7 @@ class AuthService:
     def create_token(self, token_type, data: dict[str, Any]) -> tuple[datetime, str]:
         to_encode = data.copy()
         now = datetime.now(tz=UTC)
-        if type == TokenType.ACCESS:
+        if token_type == TokenType.ACCESS:
             expire = now + timedelta(minutes=self.access_expire)
         else:
             expire = now + timedelta(days=self.refresh_expire)
@@ -60,11 +63,43 @@ class AuthService:
             algorithm=self.algorithm,
         )
 
-    def decode_access_token(self, token: str | bytes) -> dict[str, Any]:
-        return jwt.decode(
-            jwt=token,
-            key=self.public_key,
-            algorithms=[self.algorithm],
+    def decode_token(self, token: str) -> dict[str, Any]:
+        try:
+            return jwt.decode(
+                jwt=token,
+                key=self.public_key,
+                algorithms=[self.algorithm],
+            )
+
+        except jwt.PyJWTError:
+            raise ValueError('Передан недействительный или истекший токен.')
+
+    def verified_refresh_token(self, refresh_token: str):
+        decoded_token = self.decode_token(token=refresh_token)
+        if decoded_token.get('token_type') != TokenType.REFRESH:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Передан неверный тип токена.'
+            )
+        return decoded_token
+
+    async def refresh_access_token(self, refresh_token: str, session: AsyncSession):
+        decoded_token = self.verified_refresh_token(refresh_token=refresh_token)
+        user_id = UUID(decoded_token.get('user_id'))
+        user_db = await session.execute(
+            select(AuthenticatedUser)
+            .where(AuthenticatedUser.id == user_id)
+        )
+        user = user_db.scalar_one_or_none()
+        updated_data = {
+            'user_id': str(user.id),
+            'phone_number': user.phone_number,
+            'role': user.role,
+            'status': user.status,
+        }
+        return self.create_token(
+            token_type=TokenType.ACCESS,
+            data=updated_data,
         )
 
     @staticmethod
