@@ -4,7 +4,7 @@ from fastapi.exceptions import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import AuthenticatedUser, UserStatus
+from src.auth.models import User
 from src.auth.service import auth_service
 from src.database import get_async_session
 
@@ -17,7 +17,7 @@ class AuthValidation:
         self,
         session: AsyncSession,
         user_phone: str,
-    ) -> AuthenticatedUser | None:
+    ) -> User | None:
         user_exists = await session.execute(
             select(self.model).where(self.model.phone_number == user_phone)
         )
@@ -28,7 +28,7 @@ class AuthValidation:
         self,
         session: AsyncSession,
         user_phone: str,
-    ) -> AuthenticatedUser | None:
+    ) -> User | None:
         if user_object := await self.check_user_exist(
             session=session,
             user_phone=user_phone,
@@ -44,7 +44,7 @@ class AuthValidation:
         self,
         session: AsyncSession,
         user_phone: str,
-    ) -> AuthenticatedUser | None:
+    ) -> User | None:
         if not (
             user_object := await self.check_user_exist(
                 session=session,
@@ -60,30 +60,26 @@ class AuthValidation:
 
     def check_user_status(
         self,
-        user: AuthenticatedUser,
+        user: User,
     ):
-        if user.status == UserStatus.IS_BLOCKED:
+        if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='К сожалению, Вы заблокированы.'
             )
 
 
-auth_validator = AuthValidation(AuthenticatedUser)
+auth_validator = AuthValidation(User)
 
 
 async def validate_auth_user(
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     session: Annotated[AsyncSession, Depends(get_async_session)],
-) -> AuthenticatedUser:
+) -> User:
     user = await auth_validator.check_user_phone_shoud_exist(
         session=session,
         user_phone=username,
-    )
-    auth_service.verified_password(
-        input_password=password,
-        hashed_password=user.hashed_password,
     )
     auth_validator.check_user_status(
         user=user,

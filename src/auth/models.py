@@ -2,9 +2,9 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import MetaData, func
+from sqlalchemy import MetaData, func, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from src.constants import DB_NAMING_CONVENTION
 
@@ -18,14 +18,9 @@ class TokenType(StrEnum):
     REFRESH = 'refresh'
 
 
-class UserRole(StrEnum):
-    SUPERUSER = 'admin'
-    REGULAR_USER = 'regular'
-
-
-class UserStatus(StrEnum):
-    IS_BLOCKED = 'blocked'
-    IS_ACTIVE = 'active'
+class UserType(StrEnum):
+    SELLER = 'seller'
+    BUYER = 'buyer'
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -37,20 +32,49 @@ class Base(AsyncAttrs, DeclarativeBase):
         primary_key=True,
         default=uuid4,
     )
-    created_at: Mapped[datetime] = mapped_column(default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        default=func.now(),
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        default=func.now(), onupdate=func.now()
+        default=func.now(),
+        onupdate=func.now(),
     )
 
 
-class AuthenticatedUser(Base):
-    __tablename__ = 'authenticated_users'
+class User(Base):
+    __tablename__ = 'users'
 
     phone_number: Mapped[str]
-    hashed_password: Mapped[str]
-    role: Mapped[UserRole] = mapped_column(
-        default=UserRole.REGULAR_USER,
+    type: Mapped[UserType]
+    is_active: Mapped[bool] = mapped_column(
+        default=True,
     )
-    status: Mapped[UserStatus] = mapped_column(
-        default=UserStatus.IS_ACTIVE,
+
+    refresh_token: Mapped[list["RefreshToken"]] = relationship(
+        back_populates='user',
+        cascade='all, delete-orphan',
+    )
+
+
+class RefreshToken(Base):
+    __tablename__ = 'refresh_tokens'
+
+    token: Mapped[str] = mapped_column(
+        unique=True,
+        nullable=False,
+    )
+    fingerprint: Mapped[str] = mapped_column(
+        unique=True,
+    )
+    revoked: Mapped[bool] = mapped_column(
+        default=False,
+    )
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey('users.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+
+    user: Mapped['User'] = relationship(
+        back_populates='refresh_tokens',
     )

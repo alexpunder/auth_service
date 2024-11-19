@@ -44,6 +44,9 @@ class AuthSettings(ExtendBaseSettings):
     ACCESS_EXPIRE_MINUTES: int = 5
     REFRESH_EXPIRE_DAYS: int = 30
 
+    SMS_API_KEY: str
+    SMS_LOGIN: str
+
     @property
     def get_public_key(self):
         return self.PUBLIC_KEY_PATH.read_text()

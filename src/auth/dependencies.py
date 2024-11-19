@@ -8,7 +8,7 @@ from jwt import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import AuthenticatedUser, TokenType
+from src.auth.models import User, TokenType
 from src.auth.service import auth_service
 from src.auth.validations import auth_validator
 from src.database import get_async_session
@@ -39,11 +39,11 @@ def get_current_token_payload(
 async def get_current_user(
     payload: Annotated[dict[str, Any], Depends(get_current_token_payload)],
     session: Annotated[AsyncSession, Depends(get_async_session)],
-) -> AuthenticatedUser:
+) -> User:
     user_id = UUID(payload.get('user_id'))
     current_user_db = await session.execute(
-        select(AuthenticatedUser)
-        .where(AuthenticatedUser.id == user_id)
+        select(User)
+        .where(User.id == user_id)
     )
     current_user = current_user_db.scalar_one_or_none()
 

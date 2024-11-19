@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.auth.models import AuthenticatedUser, TokenType
+from src.auth.models import User, TokenType
 
 loop = asyncio.get_event_loop()
 
@@ -87,8 +87,8 @@ class AuthService:
         decoded_token = self.verified_refresh_token(refresh_token=refresh_token)
         user_id = UUID(decoded_token.get('user_id'))
         user_db = await session.execute(
-            select(AuthenticatedUser)
-            .where(AuthenticatedUser.id == user_id)
+            select(User)
+            .where(User.id == user_id)
         )
         user = user_db.scalar_one_or_none()
         updated_data = {
@@ -107,17 +107,6 @@ class AuthService:
         bytes_pwd = password.encode('utf-8')
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(password=bytes_pwd, salt=salt)
-
-    @staticmethod
-    def verified_password(input_password: str, hashed_password: bytes):
-        if not bcrypt.checkpw(
-            password=input_password.encode('utf-8'),
-            hashed_password=hashed_password,
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Ошибка проверки логина или пароля.',
-            )
 
 
 auth_service = AuthService()
