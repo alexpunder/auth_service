@@ -46,6 +46,7 @@ class AuthSettings(ExtendBaseSettings):
 
     SMS_API_KEY: str
     SMS_LOGIN: str
+    SMS_BASE_URL: str
 
     @property
     def get_public_key(self):

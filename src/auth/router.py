@@ -45,12 +45,14 @@ async def buyer_registration_request(
 
     print(f'Проверочный код: {verifier_code=}')
 
-    async with AsyncClient() as client:
-        BASE_URL = (
-            f"https://{settings.auth_settings.SMS_LOGIN}:{settings.auth_settings.SMS_API_KEY}@gate.smsaero.ru/v2/"
-        )
+    async with AsyncClient(
+        auth=(
+            settings.auth_settings.SMS_LOGIN,
+            settings.auth_settings.SMS_API_KEY,
+        ),
+    ) as client:
         response = await client.get(
-            url=BASE_URL + "auth",
+            url=settings.auth_settings.SMS_BASE_URL + "auth",
         )
         SMS_PARAMS = {
             "number": input_number.phone_number,
@@ -58,7 +60,7 @@ async def buyer_registration_request(
             "sign": "SMS Aero",
         }
         send_verifier_message = await client.get(
-            url=BASE_URL + "sms/send",
+            url=settings.auth_settings.SMS_BASE_URL + "sms/send",
             params=SMS_PARAMS,
         )
         print(send_verifier_message.json())
