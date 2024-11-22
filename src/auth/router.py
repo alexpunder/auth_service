@@ -47,7 +47,8 @@ async def buyer_registration_request(
 
     async with AsyncClient() as client:
         BASE_URL = (
-            f"https://{settings.auth_settings.SMS_LOGIN}:{settings.auth_settings.SMS_API_KEY}@gate.smsaero.ru/v2/")
+            f"https://{settings.auth_settings.SMS_LOGIN}:{settings.auth_settings.SMS_API_KEY}@gate.smsaero.ru/v2/"
+        )
         response = await client.get(
             url=BASE_URL + "auth",
         )
